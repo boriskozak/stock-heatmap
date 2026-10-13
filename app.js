@@ -550,16 +550,29 @@
 
     // ===== MARKET STATUS =====
     function updateMarketStatus() {
-        const now = new Date();
-        const day = now.getDay();
-        const time = now.getHours() * 60 + now.getMinutes();
-        const isOpen = day >= 1 && day <= 5 && time >= 570 && time <= 960;
+        // Regular market hours are 9:30 AM - 4:00 PM Eastern, Mon-Fri.
+        // Evaluate them in the exchange's timezone, not the viewer's:
+        // a viewer on the West Coast (or abroad) otherwise sees the
+        // status flip hours early or late.
+        const parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            weekday: 'short',
+            hour: 'numeric',
+            minute: 'numeric',
+            hourCycle: 'h23'
+        }).formatToParts(new Date());
+        const et = {};
+        for (const part of parts) et[part.type] = part.value;
+        const day = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(et.weekday);
+        const time = parseInt(et.hour, 10) * 60 + parseInt(et.minute, 10);
+        const isOpen = day && time >= 570 && time <= 960;
 
         const dot = document.querySelector('.status-dot');
         const text = document.querySelector('.status-text');
 
         if (isOpen) {
             dot.style.background = 'var(--green-400)';
+            dot.style.animation = '';
             text.textContent = 'Market Open';
         } else {
             dot.style.background = 'var(--neutral-500)';
